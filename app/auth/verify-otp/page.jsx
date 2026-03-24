@@ -23,7 +23,7 @@ function VerifyOtpPageContent() {
     const cachedRegistration = getPendingRegistration();
 
     if (!cachedRegistration) {
-      setError("Registration details not found. Please request a new OTP.");
+      setError("Pending operator enrollment not found. Request a fresh verification code to continue.");
       return;
     }
 
@@ -36,7 +36,7 @@ function VerifyOtpPageContent() {
     event.preventDefault();
 
     if (!pendingRegistration) {
-      setError("Please restart the registration process.");
+      setError("Enrollment context expired. Restart operator registration to generate a new verification code.");
       return;
     }
 
@@ -52,7 +52,7 @@ function VerifyOtpPageContent() {
 
       clearPendingRegistration();
       login(response);
-      setSuccess("Verification complete. Redirecting to your dashboard...");
+      setSuccess("Identity confirmed. Routing to the BRADSafe defense console...");
       router.push("/dashboard");
     } catch (submitError) {
       setError(submitError.message);
@@ -63,23 +63,25 @@ function VerifyOtpPageContent() {
 
   return (
     <section className="mx-auto flex min-h-[calc(100vh-81px)] w-full max-w-4xl items-center px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-8 shadow-xl shadow-amber-100/60 backdrop-blur-xl">
+      <div className="w-full rounded-[2rem] border border-slate-800 bg-slate-950/90 p-8 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
         <div className="space-y-4">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--accent-strong)]">
-            Verify OTP
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-300">
+            Identity Verification
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-            Complete your account creation
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-100">
+            Confirm the operator before console access is granted.
           </h1>
-          <p className="text-slate-600">
-            Enter the OTP sent to <span className="font-semibold text-slate-900">{email}</span>.
+          <p className="text-slate-400">
+            Enter the one-time verification code transmitted to{" "}
+            <span className="font-semibold text-slate-100">{email}</span>. This step prevents
+            unauthorized enrollment into the live mitigation environment.
           </p>
         </div>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label htmlFor="otp" className="text-sm font-medium text-slate-700">
-              One-Time Password
+            <label htmlFor="otp" className="text-sm font-medium text-slate-200">
+              Verification Code
             </label>
             <input
               id="otp"
@@ -88,19 +90,23 @@ function VerifyOtpPageContent() {
               value={otp}
               onChange={(event) => setOtp(event.target.value)}
               required
-              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 tracking-[0.4em] text-slate-900 outline-none transition focus:border-[var(--accent)]"
+              className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-4 text-center tracking-[0.4em] text-2xl font-semibold text-slate-100 outline-none transition focus:border-emerald-400"
               placeholder="123456"
             />
+            <p className="text-xs text-slate-400">
+              Codes are time-sensitive. If delivery is delayed or the code expires, request a
+              new issuance from the enrollment screen.
+            </p>
           </div>
 
           {error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+            <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
               {error}
             </div>
           ) : null}
 
           {success ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
               {success}
             </div>
           ) : null}
@@ -108,16 +114,16 @@ function VerifyOtpPageContent() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Verifying..." : "Verify OTP"}
+            {isSubmitting ? "Validating operator identity..." : "Validate operator identity"}
           </button>
         </form>
 
-        <p className="mt-6 text-sm text-slate-500">
-          Need a new code?{" "}
-          <Link href="/auth/register" className="font-semibold text-[var(--accent-strong)]">
-            Restart registration
+        <p className="mt-6 text-sm text-slate-400">
+          Need a fresh code issue?{" "}
+          <Link href="/auth/register" className="font-semibold text-amber-300">
+            Restart operator enrollment
           </Link>
         </p>
       </div>
@@ -127,7 +133,7 @@ function VerifyOtpPageContent() {
 
 export default function VerifyOtpPage() {
   return (
-    <Suspense fallback={<Loading label="Loading verification..." />}>
+    <Suspense fallback={<Loading label="Loading identity verification checkpoint..." />}>
       <VerifyOtpPageContent />
     </Suspense>
   );

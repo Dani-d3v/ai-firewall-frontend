@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
     try {
       await requestPasswordReset({ email });
       setPendingReset({ email });
-      setSuccess("Reset instructions sent. Continue to the reset screen with your OTP.");
+      setSuccess("Credential recovery initiated. Proceed to the reset checkpoint with the recovery code.");
       router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`);
     } catch (submitError) {
       setError(submitError.message);
@@ -34,23 +34,24 @@ export default function ForgotPasswordPage() {
 
   return (
     <section className="mx-auto flex min-h-[calc(100vh-81px)] w-full max-w-4xl items-center px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-8 shadow-xl shadow-amber-100/60 backdrop-blur-xl">
+      <div className="w-full rounded-[2rem] border border-slate-800 bg-slate-950/90 p-8 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
         <div className="space-y-4">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--accent-strong)]">
-            Forgot Password
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-300">
+            Credential Recovery
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-            Request a secure password reset
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-100">
+            Request a secure access key reset.
           </h1>
-          <p className="text-slate-600">
-            Enter your account email and we will start the recovery flow.
+          <p className="text-slate-400">
+            Submit the operator email tied to your BRADSafe workspace and we will issue a
+            recovery code for controlled credential rotation.
           </p>
         </div>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-slate-700">
-              Email
+            <label htmlFor="email" className="text-sm font-medium text-slate-200">
+              Command Email
             </label>
             <input
               id="email"
@@ -59,19 +60,19 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[var(--accent)]"
-              placeholder="you@company.com"
+              className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-slate-100 outline-none transition focus:border-amber-300"
+              placeholder="operator@bradsafe.io"
             />
           </div>
 
           {error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+            <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
               {error}
             </div>
           ) : null}
 
           {success ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
               {success}
             </div>
           ) : null}
@@ -79,16 +80,16 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-2xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/25 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Submitting..." : "Send Reset OTP"}
+            {isSubmitting ? "Issuing recovery code..." : "Issue recovery code"}
           </button>
         </form>
 
-        <p className="mt-6 text-sm text-slate-500">
-          Remembered it?{" "}
-          <Link href="/auth/login" className="font-semibold text-[var(--accent-strong)]">
-            Back to login
+        <p className="mt-6 text-sm text-slate-400">
+          Access restored already?{" "}
+          <Link href="/auth/login" className="font-semibold text-emerald-300">
+            Return to operator access
           </Link>
         </p>
       </div>

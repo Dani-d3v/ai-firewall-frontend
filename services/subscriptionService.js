@@ -1,31 +1,31 @@
 import api, { extractApiData } from "@/services/api";
 
 export const getPlans = async () => {
-  const response = await api.get("/subscriptions");
+  const response = await api.get("/api/subscriptions");
   return extractApiData(response);
 };
 
 export const simulatePayment = async (payload) => {
-  const response = await api.post("/subscriptions/simulate-payment", payload);
+  const response = await api.post("/api/subscriptions/simulate-payment", payload);
   return extractApiData(response);
 };
 
 export const buyPlan = async (payload) => {
-  const response = await api.post("/subscriptions/buy", payload);
+  const response = await api.post("/api/subscriptions/buy", payload);
   return extractApiData(response);
 };
 
 export const getCurrentSubscription = async () => {
-  const response = await api.get("/subscriptions/current");
+  const response = await api.get("/api/subscriptions/current");
   return extractApiData(response);
 };
 
 export const getSubscriptionHistory = async () => {
-  const response = await api.get("/subscriptions/history");
+  const response = await api.get("/api/subscriptions/history");
   return extractApiData(response);
 };
 
 export const cancelSubscription = async (payload = {}) => {
-  const response = await api.post("/subscriptions/cancel", payload);
+  const response = await api.post("/api/subscriptions/cancel", payload);
   return extractApiData(response);
 };

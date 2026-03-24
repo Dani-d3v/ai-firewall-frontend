@@ -50,11 +50,11 @@ function LoginPageContent() {
     <section className="mx-auto flex min-h-[calc(100vh-81px)] w-full max-w-7xl items-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid w-full gap-10 lg:grid-cols-[1fr_0.95fr]">
         <div className="space-y-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-300">
-            Operator Access
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--accent-strong)]">
+            Login
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
-            Enter the BRADSafe defense console.
+            Login to your BRADSafe account.
           </h1>
           <p className="max-w-xl text-lg leading-8 text-slate-600">
             Authenticate to review live detections, inspect AI decisions, and manage
@@ -63,11 +63,11 @@ function LoginPageContent() {
           </p>
         </div>
 
-        <div className="rounded-[2rem] border border-slate-800 bg-slate-950/90 p-8 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
+        <div className="rounded-[2rem] border border-amber-200 bg-[var(--surface)] p-8 shadow-xl shadow-amber-100/70 backdrop-blur-xl">
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-slate-200">
-                Command Email
+              <label htmlFor="email" className="text-sm font-medium text-slate-700">
+                Email
               </label>
               <input
                 id="email"
@@ -76,13 +76,13 @@ function LoginPageContent() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-slate-100 outline-none transition focus:border-emerald-400"
-                placeholder="operator@bradsafe.io"
+                className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[var(--accent)]"
+                placeholder="you@company.com"
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-slate-200">
-                Access Key
+              <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                Password
               </label>
               <input
                 id="password"
@@ -91,13 +91,13 @@ function LoginPageContent() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-slate-100 outline-none transition focus:border-emerald-400"
-                placeholder="Enter your operator access key"
+                className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[var(--accent)]"
+                placeholder="Enter your password"
               />
             </div>
 
             {error ? (
-              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
                 {error}
               </div>
             ) : null}
@@ -105,20 +105,20 @@ function LoginPageContent() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? "Authenticating operator..." : "Access defense console"}
+              {isSubmitting ? "Signing in..." : "Login"}
             </button>
           </form>
 
-          <div className="mt-6 flex flex-col gap-3 text-sm text-slate-400 sm:flex-row sm:justify-between">
-            <Link href="/auth/forgot-password" className="font-semibold text-amber-300">
-              Recover access key
+          <div className="mt-6 flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:justify-between">
+            <Link href="/auth/forgot-password" className="font-semibold text-[var(--accent-strong)]">
+              Forgot password?
             </Link>
             <p>
-              Need operator credentials?{" "}
-              <Link href="/auth/register" className="font-semibold text-emerald-300">
-                Begin enrollment
+              No account yet?{" "}
+              <Link href="/auth/register" className="font-semibold text-[var(--accent-strong)]">
+                Register
               </Link>
             </p>
           </div>
@@ -130,7 +130,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<Loading label="Loading operator authentication..." />}>
+    <Suspense fallback={<Loading label="Loading login..." />}>
       <LoginPageContent />
     </Suspense>
   );

@@ -18,11 +18,11 @@ export default function ProtectedRoute({ children }) {
   }, [isAuthenticated, isLoading, pathname, router]);
 
   if (isLoading) {
-    return <Loading label="Validating operator session..." />;
+    return <Loading label="Checking your session..." />;
   }
 
   if (!isAuthenticated) {
-    return <Loading label="Redirecting to operator access..." />;
+    return <Loading label="Redirecting to login..." />;
   }
 
   return children;

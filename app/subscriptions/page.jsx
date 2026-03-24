@@ -118,14 +118,14 @@ function SubscriptionsContent() {
   };
 
   if (isLoading) {
-    return <Loading label="Loading BRADSafe protection tiers..." />;
+    return <Loading label="Loading subscriptions..." />;
   }
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="space-y-8">
         <div className="space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-300">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--accent-strong)]">
             Protection Tiers
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
@@ -138,48 +138,48 @@ function SubscriptionsContent() {
         </div>
 
         {error ? (
-          <div className="rounded-3xl border border-rose-500/30 bg-rose-500/10 px-6 py-4 text-rose-200">
+          <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-4 text-rose-600">
             {error}
           </div>
         ) : null}
 
         {success ? (
-          <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 px-6 py-4 text-emerald-200">
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-emerald-700">
             {success}
           </div>
         ) : null}
 
         <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
           <div className="space-y-6">
-            <div className="rounded-[2rem] border border-slate-800 bg-slate-950/90 p-6 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
+            <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/50 backdrop-blur-xl">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm uppercase tracking-[0.25em] text-emerald-300">
-                    Active protection tier
+                    Current plan
                   </p>
-                  <h2 className="mt-3 text-2xl font-semibold text-slate-100">
-                    {currentPlan?.plan || currentPlan?.name || "No active protection tier"}
+                  <h2 className="mt-3 text-2xl font-semibold text-slate-950">
+                    {currentPlan?.plan || currentPlan?.name || "No active subscription"}
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleAction("cancel")}
                   disabled={!currentPlan || activeAction === "cancel-global"}
-                  className="rounded-full border border-rose-500/30 px-4 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-full border border-rose-200 px-4 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {activeAction === "cancel-global" ? "Withdrawing..." : "Withdraw tier"}
+                  {activeAction === "cancel-global" ? "Cancelling..." : "Cancel"}
                 </button>
               </div>
-              <div className="mt-5 grid gap-3 text-sm text-slate-400">
-                <p>Enforcement mode: {currentPlan?.status || "Not provisioned"}</p>
+              <div className="mt-5 grid gap-3 text-sm text-slate-600">
+                <p>Status: {currentPlan?.status || "N/A"}</p>
                 <p>
-                  Coverage ends: {currentPlan?.expiresAt || currentPlan?.endDate || "Not available"}
+                  Ends on: {currentPlan?.expiresAt || currentPlan?.endDate || "Not available"}
                 </p>
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-slate-800 bg-slate-950/90 p-6 shadow-xl shadow-slate-950/30">
-              <p className="text-sm uppercase tracking-[0.25em] text-amber-300">
+            <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/40">
+              <p className="text-sm uppercase tracking-[0.25em] text-slate-500">
                 Protection history
               </p>
               <div className="mt-5 space-y-3">
@@ -187,18 +187,18 @@ function SubscriptionsContent() {
                   history.map((item, index) => (
                     <div
                       key={item?._id || item?.id || `${item?.plan || "history"}-${index}`}
-                      className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-4"
+                      className="rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-4 py-4"
                     >
-                      <p className="font-semibold text-slate-100">
+                      <p className="font-semibold text-slate-900">
                         {item?.plan || item?.name || "Protection tier"}
                       </p>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-slate-500">
                         {item?.status || "Status unavailable"}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-slate-500">
                     No protection history available yet. Once a tier is activated, its state
                     changes will appear here for operator review.
                   </p>
@@ -220,18 +220,18 @@ function SubscriptionsContent() {
                     key={planId}
                     className={`rounded-[2rem] border p-6 shadow-xl backdrop-blur-xl ${
                       isEntryTier
-                        ? "border-amber-400/30 bg-amber-500/10 shadow-amber-500/10"
-                        : "border-emerald-500/30 bg-slate-950/90 shadow-slate-950/30"
+                        ? "border-amber-300 bg-amber-50 shadow-amber-100/60"
+                        : "border-emerald-200 bg-white shadow-emerald-100/50"
                     }`}
                   >
                     <div className="space-y-3">
-                      <p className={`text-sm uppercase tracking-[0.25em] ${isEntryTier ? "text-amber-200" : "text-emerald-300"}`}>
+                      <p className={`text-sm uppercase tracking-[0.25em] ${isEntryTier ? "text-amber-700" : "text-emerald-700"}`}>
                         {isEntryTier ? "Monitor Only" : "Autonomous Prevention"}
                       </p>
-                      <h2 className={`text-2xl font-semibold ${isEntryTier ? "text-slate-950" : "text-slate-100"}`}>
+                      <h2 className="text-2xl font-semibold text-slate-950">
                         {plan?.name || `Plan ${index + 1}`}
                       </h2>
-                      <p className={isEntryTier ? "text-slate-700" : "text-slate-400"}>
+                      <p className="text-slate-600">
                         {plan?.description ||
                           (isEntryTier
                             ? "Observe telemetry, review AI Confidence Index trends, and inspect suspicious events without automatic enforcement."
@@ -239,12 +239,12 @@ function SubscriptionsContent() {
                       </p>
                     </div>
                     <div className="mt-6">
-                      <p className={`text-4xl font-semibold ${isEntryTier ? "text-slate-950" : "text-slate-100"}`}>
+                      <p className="text-4xl font-semibold text-slate-950">
                         ${plan?.price ?? "0"}
                       </p>
                     </div>
-                    <div className="mt-6 rounded-2xl border border-current/10 px-4 py-4">
-                      <p className={`text-sm font-medium ${isEntryTier ? "text-slate-800" : "text-slate-200"}`}>
+                    <div className="mt-6 rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-4 py-4">
+                      <p className="text-sm font-medium text-slate-700">
                         {isEntryTier
                           ? "Monitor Only keeps analysts informed while all mitigations remain operator-approved."
                           : "Autonomous Prevention authorizes the gateway to trigger rapid enforcement against confirmed threat actors."}
@@ -257,8 +257,8 @@ function SubscriptionsContent() {
                         disabled={activeAction === simulateActionKey}
                         className={`flex-1 rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                           isEntryTier
-                            ? "border-amber-300 text-slate-800 hover:border-slate-950"
-                            : "border-slate-700 text-slate-200 hover:border-emerald-400"
+                            ? "border-amber-300 text-slate-800 hover:border-[var(--accent)]"
+                            : "border-emerald-200 text-slate-700 hover:border-emerald-400"
                         }`}
                       >
                         {activeAction === simulateActionKey ? "Modeling..." : "Model activation"}
@@ -269,7 +269,7 @@ function SubscriptionsContent() {
                         disabled={activeAction === buyActionKey}
                         className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                           isEntryTier
-                            ? "bg-slate-950 text-white hover:bg-slate-800"
+                            ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]"
                             : "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
                         }`}
                       >
@@ -280,7 +280,7 @@ function SubscriptionsContent() {
                 );
               })
             ) : (
-              <div className="rounded-[2rem] border border-dashed border-slate-700 bg-slate-950/90 p-8 text-slate-400 md:col-span-2">
+              <div className="rounded-[2rem] border border-dashed border-amber-200 bg-white p-8 text-slate-500 md:col-span-2">
                 No protection tiers are available from the backend yet. Once provisionable
                 offerings are exposed, they will appear here for operator review.
               </div>

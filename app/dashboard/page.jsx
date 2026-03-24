@@ -39,14 +39,14 @@ function DashboardContent() {
   }, []);
 
   if (isLoading) {
-    return <Loading label="Loading BRADSafe defense telemetry..." />;
+    return <Loading label="Loading dashboard..." />;
   }
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="space-y-8">
         <div className="space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-300">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--accent-strong)]">
             Defense Overview
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
@@ -59,17 +59,17 @@ function DashboardContent() {
         </div>
 
         {error ? (
-          <div className="rounded-3xl border border-rose-500/30 bg-rose-500/10 px-6 py-5 text-rose-200">
+          <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-5 text-rose-600">
             {error}
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[2rem] border border-slate-800 bg-slate-950/90 p-8 shadow-xl shadow-slate-950/30 backdrop-blur-xl xl:col-span-2">
-              <p className="text-sm uppercase tracking-[0.25em] text-emerald-300">Active protection tier</p>
-              <h2 className="mt-4 text-3xl font-semibold text-slate-100">
+            <div className="rounded-[2rem] border border-amber-200 bg-white p-8 shadow-xl shadow-amber-100/50 xl:col-span-2">
+              <p className="text-sm uppercase tracking-[0.25em] text-[var(--accent-strong)]">Active protection tier</p>
+              <h2 className="mt-4 text-3xl font-semibold text-slate-950">
                 {getSubscriptionLabel(dashboard)}
               </h2>
-              <p className="mt-4 text-slate-400">
+              <p className="mt-4 text-slate-600">
                 This tier determines whether the gateway remains in Monitor Only mode or
                 can escalate to Autonomous Prevention when threat confidence spikes.
               </p>
@@ -98,28 +98,28 @@ function DashboardContent() {
               </p>
             </div>
 
-            <div className="rounded-[2rem] border border-slate-800 bg-slate-950/90 p-8 shadow-xl shadow-slate-950/30 backdrop-blur-xl md:col-span-2 xl:col-span-4">
-              <p className="text-sm uppercase tracking-[0.25em] text-amber-300">
+            <div className="rounded-[2rem] border border-amber-200 bg-white p-8 shadow-xl shadow-amber-100/50 md:col-span-2 xl:col-span-4">
+              <p className="text-sm uppercase tracking-[0.25em] text-[var(--accent-strong)]">
                 Why the AI Acts
               </p>
               <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4">
-                  <p className="text-sm font-semibold text-slate-100">Packet Inspection</p>
-                  <p className="mt-2 text-sm leading-7 text-slate-400">
+                <div className="rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-5 py-4">
+                  <p className="text-sm font-semibold text-slate-900">Packet Inspection</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
                     Ingress flow behavior is compared against learned Random Forest signals
                     to isolate DDoS bursts and insider-driven anomalies.
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4">
-                  <p className="text-sm font-semibold text-slate-100">Active Mitigation</p>
-                  <p className="mt-2 text-sm leading-7 text-slate-400">
+                <div className="rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-5 py-4">
+                  <p className="text-sm font-semibold text-slate-900">Active Mitigation</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
                     Response policy escalates when attack probability crosses the automated
                     threshold, reducing dwell time and preserving benign sessions.
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4">
-                  <p className="text-sm font-semibold text-slate-100">WireGuard Inspection</p>
-                  <p className="mt-2 text-sm leading-7 text-slate-400">
+                <div className="rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-5 py-4">
+                  <p className="text-sm font-semibold text-slate-900">WireGuard Inspection</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
                     Encrypted tunneling is being inspected at the termination point for
                     behavioral anomalies before traffic re-enters the protected network.
                   </p>

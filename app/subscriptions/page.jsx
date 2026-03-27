@@ -7,11 +7,24 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import {
   buyPlan,
   cancelSubscription,
+  downloadWireguardConfig,
   getCurrentSubscription,
   getPlans,
   getSubscriptionHistory,
+  getVpnAccessState,
   simulatePayment,
 } from "@/services/subscriptionService";
+import {
+  clearWireguardSession,
+  getWireguardSession,
+  setWireguardSession,
+} from "@/utils/storage";
+import {
+  buildWireguardConfig,
+  downloadTextFile,
+  formatWireguardConfigFromAccessState,
+  generateWireguardKeyPair,
+} from "@/utils/wireguard";
 
 const normalizeList = (value) => {
   if (Array.isArray(value)) {
@@ -33,10 +46,23 @@ const normalizeList = (value) => {
   return [];
 };
 
+const formatDate = (value) => {
+  if (!value) {
+    return "Not available";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+};
+
 function SubscriptionsContent() {
   const [plans, setPlans] = useState([]);
   const [currentPlan, setCurrentPlan] = useState(null);
   const [history, setHistory] = useState([]);
+  const [vpnAccess, setVpnAccess] = useState(null);
+  const [wireguardKeys, setWireguardKeys] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -47,11 +73,13 @@ function SubscriptionsContent() {
     setError("");
 
     try {
-      const [plansResponse, currentResponse, historyResponse] = await Promise.allSettled([
-        getPlans(),
-        getCurrentSubscription(),
-        getSubscriptionHistory(),
-      ]);
+      const [plansResponse, currentResponse, historyResponse, vpnAccessResponse] =
+        await Promise.allSettled([
+          getPlans(),
+          getCurrentSubscription(),
+          getSubscriptionHistory(),
+          getVpnAccessState(),
+        ]);
 
       if (plansResponse.status === "fulfilled") {
         setPlans(normalizeList(plansResponse.value));
@@ -59,16 +87,25 @@ function SubscriptionsContent() {
 
       if (currentResponse.status === "fulfilled") {
         setCurrentPlan(currentResponse.value);
+      } else {
+        setCurrentPlan(null);
       }
 
       if (historyResponse.status === "fulfilled") {
         setHistory(normalizeList(historyResponse.value));
       }
 
+      if (vpnAccessResponse.status === "fulfilled") {
+        setVpnAccess(vpnAccessResponse.value);
+      } else {
+        setVpnAccess(null);
+      }
+
       if (
         plansResponse.status === "rejected" &&
         currentResponse.status === "rejected" &&
-        historyResponse.status === "rejected"
+        historyResponse.status === "rejected" &&
+        vpnAccessResponse.status === "rejected"
       ) {
         setError(plansResponse.reason.message);
       }
@@ -78,8 +115,21 @@ function SubscriptionsContent() {
   };
 
   useEffect(() => {
+    setWireguardKeys(getWireguardSession());
     fetchSubscriptionData();
   }, []);
+
+  const ensureWireguardKeys = async () => {
+    if (wireguardKeys?.publicKey && wireguardKeys?.privateKey) {
+      return wireguardKeys;
+    }
+
+    const generatedKeys = await generateWireguardKeyPair();
+    setWireguardSession(generatedKeys);
+    setWireguardKeys(generatedKeys);
+
+    return generatedKeys;
+  };
 
   const handleAction = async (action, plan) => {
     setError("");
@@ -87,26 +137,77 @@ function SubscriptionsContent() {
     setActiveAction(`${action}-${plan?._id || plan?.id || plan?.name || "global"}`);
 
     try {
+      if (action === "generate-keys") {
+        await ensureWireguardKeys();
+        setSuccess("A WireGuard keypair was generated locally for this device.");
+      }
+
       if (action === "simulate") {
-        await simulatePayment({
+        const payment = await simulatePayment({
           planId: plan?._id || plan?.id,
-          amount: plan?.price,
+          paymentMethod: "telebirr",
         });
-        setSuccess(`Plan activation workflow simulated for ${plan?.name || "the selected tier"}.`);
+        setSuccess(
+          `Payment simulation completed for ${plan?.name || "the selected tier"} with transaction ${payment?.transactionId || "created"}.`,
+        );
       }
 
       if (action === "buy") {
-        await buyPlan({
+        const keys = await ensureWireguardKeys();
+        const payment = await simulatePayment({
           planId: plan?._id || plan?.id,
+          paymentMethod: "telebirr",
         });
-        setSuccess(`${plan?.name || "Selected tier"} is now provisioned for active defense.`);
+        const purchase = await buyPlan({
+          planId: plan?._id || plan?.id,
+          paymentId: payment?._id,
+          wireguardPublicKey: keys.publicKey,
+        });
+
+        setCurrentPlan(purchase?.subscription || null);
+        setVpnAccess(purchase?.vpn || null);
+        setSuccess(
+          `${plan?.name || "Selected tier"} is active and VPN access has been provisioned for this device.`,
+        );
       }
 
       if (action === "cancel") {
-        await cancelSubscription({
-          subscriptionId: currentPlan?._id || currentPlan?.id,
-        });
+        await cancelSubscription();
+        setCurrentPlan(null);
+        setVpnAccess(null);
+        clearWireguardSession();
+        setWireguardKeys(null);
         setSuccess("Active protection tier withdrawn successfully.");
+      }
+
+      if (action === "download-config") {
+        if (!wireguardKeys?.privateKey) {
+          throw new Error("Generate or restore a WireGuard keypair before downloading the config.");
+        }
+
+        try {
+          const template = await downloadWireguardConfig();
+          const config = buildWireguardConfig({
+            template: template.content,
+            privateKey: wireguardKeys.privateKey,
+          });
+
+          downloadTextFile({
+            content: config,
+            fileName: template.fileName,
+          });
+        } catch {
+          if (!vpnAccess) {
+            throw new Error("VPN access is not active yet, so there is no configuration to download.");
+          }
+
+          downloadTextFile({
+            content: formatWireguardConfigFromAccessState(vpnAccess, wireguardKeys.privateKey),
+            fileName: "vectraflow.conf",
+          });
+        }
+
+        setSuccess("WireGuard configuration downloaded with your locally stored private key inserted.");
       }
 
       await fetchSubscriptionData();
@@ -129,11 +230,11 @@ function SubscriptionsContent() {
             Protection Tiers
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
-            Manage monitoring and autonomous prevention modes
+            Manage your BRADSafe subscription and VPN access
           </h1>
           <p className="max-w-3xl text-lg text-slate-600">
-            Review available BRADSafe service tiers, simulate activation flows, provision a
-            tier, and inspect your protection history.
+            Review the three BRADSafe tiers, provision VPN access, and download the
+            WireGuard config generated for your active subscription.
           </p>
         </div>
 
@@ -164,7 +265,7 @@ function SubscriptionsContent() {
                 <button
                   type="button"
                   onClick={() => handleAction("cancel")}
-                  disabled={!currentPlan || activeAction === "cancel-global"}
+                  disabled={!currentPlan?.isActive || activeAction === "cancel-global"}
                   className="rounded-full border border-rose-200 px-4 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {activeAction === "cancel-global" ? "Cancelling..." : "Cancel"}
@@ -172,9 +273,48 @@ function SubscriptionsContent() {
               </div>
               <div className="mt-5 grid gap-3 text-sm text-slate-600">
                 <p>Status: {currentPlan?.status || "N/A"}</p>
-                <p>
-                  Ends on: {currentPlan?.expiresAt || currentPlan?.endDate || "Not available"}
-                </p>
+                <p>Active: {currentPlan?.isActive ? "Yes" : "No"}</p>
+                <p>Ends on: {formatDate(currentPlan?.validUntil || currentPlan?.endDate)}</p>
+                <p>Transaction ID: {currentPlan?.transactionId || "Not available"}</p>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/40">
+              <p className="text-sm uppercase tracking-[0.25em] text-slate-500">WireGuard keys</p>
+              <div className="mt-5 space-y-3">
+                <div className="rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-4 py-4">
+                  <p className="text-sm font-semibold text-slate-900">Public key</p>
+                  <p className="mt-2 break-all text-sm text-slate-600">
+                    {wireguardKeys?.publicKey || "No local keypair generated yet."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleAction("generate-keys")}
+                  disabled={activeAction === "generate-keys-global"}
+                  className="w-full rounded-2xl border border-amber-300 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {activeAction === "generate-keys-global" ? "Generating..." : "Generate local keypair"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAction("download-config")}
+                  disabled={!currentPlan?.isActive || activeAction === "download-config-global"}
+                  className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {activeAction === "download-config-global" ? "Preparing..." : "Download WireGuard config"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/40">
+              <p className="text-sm uppercase tracking-[0.25em] text-slate-500">VPN access</p>
+              <div className="mt-5 space-y-3 text-sm text-slate-600">
+                <p>Status: {vpnAccess?.status || "Unavailable"}</p>
+                <p>Active: {vpnAccess?.isActive ? "Yes" : "No"}</p>
+                <p>Valid until: {formatDate(vpnAccess?.validUntil)}</p>
+                <p>Address: {vpnAccess?.clientConfiguration?.address || "Not assigned"}</p>
+                <p>Endpoint: {vpnAccess?.gatewayConfiguration?.endpoint || "Not available"}</p>
               </div>
             </div>
 
@@ -199,8 +339,8 @@ function SubscriptionsContent() {
                   ))
                 ) : (
                   <p className="text-sm text-slate-500">
-                    No protection history available yet. Once a tier is activated, its state
-                    changes will appear here for operator review.
+                    The backend currently exposes the history array, but it may still be empty
+                    even after a purchase or cancellation.
                   </p>
                 )}
               </div>
@@ -213,41 +353,37 @@ function SubscriptionsContent() {
                 const planId = plan?._id || plan?.id || index;
                 const buyActionKey = `buy-${planId}`;
                 const simulateActionKey = `simulate-${planId}`;
-                const isEntryTier = index === 0;
+                const durationLabel = plan?.name?.split(" - ").at(-1) || `${plan?.duration} days`;
+                const isCurrentPlan = currentPlan?.planId === plan?._id;
 
                 return (
                   <article
                     key={planId}
-                    className={`rounded-[2rem] border p-6 shadow-xl backdrop-blur-xl ${
-                      isEntryTier
-                        ? "border-amber-300 bg-amber-50 shadow-amber-100/60"
-                        : "border-emerald-200 bg-white shadow-emerald-100/50"
-                    }`}
+                    className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/50 backdrop-blur-xl"
                   >
                     <div className="space-y-3">
-                      <p className={`text-sm uppercase tracking-[0.25em] ${isEntryTier ? "text-amber-700" : "text-emerald-700"}`}>
-                        {isEntryTier ? "Monitor Only" : "Autonomous Prevention"}
+                      <p className="text-sm uppercase tracking-[0.25em] text-emerald-700">
+                        BRADSafe tier
                       </p>
                       <h2 className="text-2xl font-semibold text-slate-950">
                         {plan?.name || `Plan ${index + 1}`}
                       </h2>
                       <p className="text-slate-600">
-                        {plan?.description ||
-                          (isEntryTier
-                            ? "Observe telemetry, review AI Confidence Index trends, and inspect suspicious events without automatic enforcement."
-                            : "Enable autonomous prevention so BRADSafe can escalate from analysis to active mitigation when threat confidence is high.")}
+                        {durationLabel} of BRADSafe access with VPN Access, Download Config,
+                        and AI Shield features.
                       </p>
                     </div>
                     <div className="mt-6">
                       <p className="text-4xl font-semibold text-slate-950">
                         ${plan?.price ?? "0"}
                       </p>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Duration: {plan?.duration || "N/A"} days
+                      </p>
                     </div>
                     <div className="mt-6 rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-4 py-4">
                       <p className="text-sm font-medium text-slate-700">
-                        {isEntryTier
-                          ? "Monitor Only keeps analysts informed while all mitigations remain operator-approved."
-                          : "Autonomous Prevention authorizes the gateway to trigger rapid enforcement against confirmed threat actors."}
+                        {plan?.features?.join(" | ")}
                       </p>
                     </div>
                     <div className="mt-6 flex gap-3">
@@ -255,25 +391,21 @@ function SubscriptionsContent() {
                         type="button"
                         onClick={() => handleAction("simulate", plan)}
                         disabled={activeAction === simulateActionKey}
-                        className={`flex-1 rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                          isEntryTier
-                            ? "border-amber-300 text-slate-800 hover:border-[var(--accent)]"
-                            : "border-emerald-200 text-slate-700 hover:border-emerald-400"
-                        }`}
+                        className="flex-1 rounded-2xl border border-amber-300 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {activeAction === simulateActionKey ? "Modeling..." : "Model activation"}
+                        {activeAction === simulateActionKey ? "Processing..." : "Simulate payment"}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleAction("buy", plan)}
-                        disabled={activeAction === buyActionKey}
-                        className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                          isEntryTier
-                            ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]"
-                            : "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-                        }`}
+                        disabled={activeAction === buyActionKey || isCurrentPlan}
+                        className="flex-1 rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {activeAction === buyActionKey ? "Provisioning..." : "Provision tier"}
+                        {activeAction === buyActionKey
+                          ? "Provisioning..."
+                          : isCurrentPlan
+                            ? "Current plan"
+                            : "Buy and activate"}
                       </button>
                     </div>
                   </article>

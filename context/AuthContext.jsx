@@ -20,7 +20,17 @@ const normalizeAuthData = (payload = {}) => ({
     payload.expiresAt ||
     payload.accessTokenExpiresAt ||
     null,
-  user: payload.user || payload.profile || null,
+  user:
+    payload.user ||
+    payload.profile ||
+    (payload._id || payload.email
+      ? {
+          _id: payload._id || null,
+          name: payload.name || "",
+          email: payload.email || "",
+          role: payload.role || "user",
+        }
+      : null),
 });
 
 export function AuthProvider({ children }) {

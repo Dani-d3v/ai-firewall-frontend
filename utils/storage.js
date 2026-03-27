@@ -3,6 +3,7 @@
 const AUTH_STORAGE_KEY = "ai_firewall_auth";
 const REGISTER_STORAGE_KEY = "ai_firewall_register";
 const RESET_STORAGE_KEY = "ai_firewall_reset";
+const WIREGUARD_STORAGE_KEY = "ai_firewall_wireguard";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -103,4 +104,28 @@ export const clearPendingReset = () => {
   }
 
   sessionStorage.removeItem(RESET_STORAGE_KEY);
+};
+
+export const getWireguardSession = () => {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  return safeJsonParse(localStorage.getItem(WIREGUARD_STORAGE_KEY));
+};
+
+export const setWireguardSession = (payload) => {
+  if (!isBrowser()) {
+    return;
+  }
+
+  localStorage.setItem(WIREGUARD_STORAGE_KEY, JSON.stringify(payload));
+};
+
+export const clearWireguardSession = () => {
+  if (!isBrowser()) {
+    return;
+  }
+
+  localStorage.removeItem(WIREGUARD_STORAGE_KEY);
 };

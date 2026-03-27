@@ -46,7 +46,7 @@ function VerifyOtpPageContent() {
 
     try {
       const response = await registerUser({
-        ...pendingRegistration,
+        email: pendingRegistration.email,
         otp,
       });
 

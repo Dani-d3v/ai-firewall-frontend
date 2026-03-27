@@ -6,6 +6,17 @@ import Loading from "@/components/Loading";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { getProfile } from "@/services/userService";
 
+const formatDate = (value) => {
+  if (!value) {
+    return "Not available";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+};
+
 function ProfileContent() {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
@@ -41,8 +52,8 @@ function ProfileContent() {
             Your account information
           </h1>
           <p className="max-w-2xl text-lg text-slate-600">
-            Review the identity metadata returned by the profile endpoint for the current
-            operator session.
+            Review the identity, subscription, and VPN details returned by the protected
+            profile endpoint for the current session.
           </p>
         </div>
 
@@ -63,6 +74,28 @@ function ProfileContent() {
               <h2 className="mt-4 break-all text-3xl font-semibold text-slate-950">
                 {profile?.email || "Not available"}
               </h2>
+            </div>
+            <div className="rounded-[2rem] border border-amber-200 bg-white p-8 shadow-xl shadow-amber-100/40">
+              <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Subscription</p>
+              <h2 className="mt-4 text-2xl font-semibold text-slate-950">
+                {profile?.subscription?.plan || "No active plan"}
+              </h2>
+              <div className="mt-4 space-y-2 text-sm text-slate-600">
+                <p>Status: {profile?.subscription?.status || "Inactive"}</p>
+                <p>Active: {profile?.subscription?.isActive ? "Yes" : "No"}</p>
+                <p>Valid until: {formatDate(profile?.subscription?.validUntil)}</p>
+              </div>
+            </div>
+            <div className="rounded-[2rem] border border-amber-200 bg-white p-8 shadow-xl shadow-amber-100/40">
+              <p className="text-sm uppercase tracking-[0.25em] text-slate-500">VPN Access</p>
+              <h2 className="mt-4 text-2xl font-semibold text-slate-950">
+                {profile?.vpn?.status || "Not provisioned"}
+              </h2>
+              <div className="mt-4 space-y-2 text-sm text-slate-600">
+                <p>Assigned IP: {profile?.vpn?.assignedIp || "Not assigned"}</p>
+                <p>Public key: {profile?.vpn?.publicKey || "Not available"}</p>
+                <p>Provisioned: {formatDate(profile?.vpn?.lastProvisionedAt)}</p>
+              </div>
             </div>
             <div className="rounded-[2rem] border border-amber-200 bg-white p-8 shadow-xl shadow-amber-100/40 md:col-span-2">
               <p className="text-sm uppercase tracking-[0.25em] text-slate-500">

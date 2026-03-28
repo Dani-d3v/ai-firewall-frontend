@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Loading from "@/components/Loading";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { getPlans, buyPlan, simulatePayment } from "@/services/subscriptionService";
+import { fallbackPlans, normalizePlans } from "@/utils/plans";
 import {
   clearCheckoutSession,
   getCheckoutSession,
@@ -27,18 +28,6 @@ const paymentOptions = [
   },
 ];
 
-const normalizeList = (value) => {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (Array.isArray(value?.plans)) {
-    return value.plans;
-  }
-
-  return [];
-};
-
 function PaymentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,7 +42,17 @@ function PaymentPageContent() {
     const loadSelectedPlan = async () => {
       try {
         const planId = searchParams.get("planId") || getCheckoutSession()?.planId;
-        const plans = normalizeList(await getPlans());
+        let plans = fallbackPlans;
+
+        try {
+          plans = normalizePlans(await getPlans());
+          if (!plans.length) {
+            plans = fallbackPlans;
+          }
+        } catch {
+          plans = fallbackPlans;
+        }
+
         const matchedPlan = plans.find((plan) => plan?._id === planId) || null;
 
         if (!matchedPlan) {

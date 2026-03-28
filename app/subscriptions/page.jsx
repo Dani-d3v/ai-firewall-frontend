@@ -6,23 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import Loading from "@/components/Loading";
 import { useAuth } from "@/context/AuthContext";
 import { getPlans } from "@/services/subscriptionService";
+import { fallbackPlans, normalizePlans } from "@/utils/plans";
 import { setCheckoutSession } from "@/utils/storage";
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (Array.isArray(value?.plans)) {
-    return value.plans;
-  }
-
-  if (Array.isArray(value?.subscriptions)) {
-    return value.subscriptions;
-  }
-
-  return [];
-};
 
 const getDisplayPlanName = (plan) => {
   const duration = plan?.duration;
@@ -70,9 +55,11 @@ export default function SubscriptionsPage() {
     const fetchPlans = async () => {
       try {
         const data = await getPlans();
-        setPlans(normalizeList(data));
+        const normalizedPlans = normalizePlans(data);
+        setPlans(normalizedPlans.length ? normalizedPlans : fallbackPlans);
       } catch (fetchError) {
-        setError(fetchError.message);
+        setPlans(fallbackPlans);
+        setError(`${fetchError.message} Showing the default BRADSafe plans instead.`);
       } finally {
         setIsLoading(false);
       }

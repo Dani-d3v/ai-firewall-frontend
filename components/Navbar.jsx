@@ -9,7 +9,11 @@ import { useAuth } from "@/context/AuthContext";
 const navigationItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/subscriptions", label: "Subscriptions" },
-  { href: "/profile", label: "Profile" },
+];
+
+const publicNavigationItems = [
+  { href: "/", label: "Company" },
+  { href: "/subscriptions", label: "Plans" },
 ];
 
 const authRoutes = [
@@ -112,6 +116,26 @@ export default function Navbar() {
             </>
           ) : (
             <div className="flex items-center gap-2">
+              <nav className="hidden items-center gap-2 rounded-full border border-amber-200 bg-white/95 p-1 shadow-md md:flex">
+                {publicNavigationItems.map((item) => {
+                  const isActive = pathname === item.href;
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeMobileMenu}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? "bg-[var(--accent)] text-white shadow-sm"
+                          : "text-slate-700 hover:bg-[var(--accent-soft)] hover:text-[var(--accent-strong)]"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
               <Link
                 href="/auth/login"
                 className="rounded-full border border-transparent px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-amber-200 hover:bg-white hover:text-[var(--accent-strong)]"

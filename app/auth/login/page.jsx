@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser } from "@/services/authService";
 import Loading from "@/components/Loading";
 import { useAuth } from "@/context/AuthContext";
+import { getCheckoutSession } from "@/utils/storage";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -19,7 +20,10 @@ function LoginPageContent() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const checkoutPlanId = getCheckoutSession()?.planId;
+  const redirectTo =
+    searchParams.get("redirect") ||
+    (checkoutPlanId ? `/payment?planId=${encodeURIComponent(checkoutPlanId)}` : "/dashboard");
 
   const handleChange = (event) => {
     const { name, value } = event.target;

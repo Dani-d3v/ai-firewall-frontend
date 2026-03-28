@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
+import Loading from "@/components/Loading";
 import { requestRegisterOtp } from "@/services/authService";
-import { setPendingRegistration } from "@/utils/storage";
+import { getCheckoutSession, setCheckoutSession, setPendingRegistration } from "@/utils/storage";
 
 const initialForm = {
   name: "",
@@ -13,12 +14,27 @@ const initialForm = {
   password: "",
 };
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState(initialForm);
+  const [checkout, setCheckout] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const storedCheckout = getCheckoutSession();
+    const planId = searchParams.get("planId");
+
+    if (storedCheckout) {
+      setCheckout(storedCheckout);
+    } else if (planId) {
+      const fallbackCheckout = { planId };
+      setCheckout(fallbackCheckout);
+      setCheckoutSession(fallbackCheckout);
+    }
+  }, [searchParams]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -37,9 +53,20 @@ export default function RegisterPage() {
 
     try {
       await requestRegisterOtp(formData);
-      setPendingRegistration(formData);
-      setSuccess("Verification code dispatched. Confirm operator identity to activate the BRADSafe workspace.");
-      router.push(`/auth/verify-otp?email=${encodeURIComponent(formData.email)}`);
+      setPendingRegistration({
+        ...formData,
+        planId: checkout?.planId || searchParams.get("planId") || null,
+      });
+      setSuccess("OTP sent successfully. Confirm your email to continue to payment.");
+
+      const query = new URLSearchParams();
+      query.set("email", formData.email);
+
+      if (checkout?.planId || searchParams.get("planId")) {
+        query.set("planId", checkout?.planId || searchParams.get("planId"));
+      }
+
+      router.push(`/auth/verify-otp?${query.toString()}`);
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -52,23 +79,33 @@ export default function RegisterPage() {
       <div className="grid w-full gap-10 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-6">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--accent-strong)]">
-            Register
+            Account creation
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
-            Create your BRADSafe account.
+            Create your customer account before payment.
           </h1>
           <p className="max-w-xl text-lg leading-8 text-slate-600">
-            Register your command credentials, validate identity through OTP, and unlock
-            access to the AI Security Gateway. Verification is required before any
-            mitigation controls or threat telemetry become available.
+            The plan is selected first, then we register the customer, verify the OTP, and
+            move straight into payment and service activation.
           </p>
+          <div className="rounded-[2rem] border border-amber-200 bg-white/90 p-6 shadow-lg shadow-amber-100/40">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">
+              Selected plan
+            </p>
+            <p className="mt-3 text-2xl font-semibold text-slate-950">
+              {checkout?.displayName || checkout?.name || "BRADSafe subscription"}
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              {checkout?.price ? `$${checkout.price}` : "Plan pricing will appear on the payment page."}
+            </p>
+          </div>
         </div>
 
         <div className="rounded-[2rem] border border-amber-200 bg-[var(--surface)] p-8 shadow-xl shadow-amber-100/70 backdrop-blur-xl">
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium text-slate-700">
-                Full Name
+                Full name
               </label>
               <input
                 id="name"
@@ -78,7 +115,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[var(--accent)]"
-                placeholder="Alex Morgan"
+                placeholder="Daniel Bekele"
               />
             </div>
             <div className="space-y-2">
@@ -93,7 +130,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[var(--accent)]"
-                placeholder="you@company.com"
+                placeholder="you@example.com"
               />
             </div>
             <div className="space-y-2">
@@ -109,12 +146,8 @@ export default function RegisterPage() {
                 required
                 minLength={6}
                 className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[var(--accent)]"
-                placeholder="Create a strong password"
+                placeholder="At least 6 characters"
               />
-              <p className="text-xs text-slate-500">
-                This credential protects access to live telemetry, automated response settings,
-                and subscription controls.
-              </p>
             </div>
 
             {error ? (
@@ -134,12 +167,12 @@ export default function RegisterPage() {
               disabled={isSubmitting}
               className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? "Dispatching verification code..." : "Request verification code"}
+              {isSubmitting ? "Sending OTP..." : "Create Account"}
             </button>
           </form>
 
           <p className="mt-6 text-sm text-slate-500">
-            Already registered?{" "}
+            Already have an account?{" "}
             <Link href="/auth/login" className="font-semibold text-[var(--accent-strong)]">
               Login
             </Link>
@@ -147,5 +180,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<Loading label="Loading registration..." />}>
+      <RegisterPageContent />
+    </Suspense>
   );
 }

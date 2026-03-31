@@ -20,6 +20,11 @@ export const buyPlan = async (payload) => {
   return extractApiData(response);
 };
 
+export const retryGatewaySync = async (userId) => {
+  const response = await api.post(`/api/subscriptions/admin/retry-sync/${encodeURIComponent(userId)}`);
+  return extractApiData(response);
+};
+
 export const getCurrentSubscription = async () => {
   const response = await api.get("/api/subscriptions/my-plan");
   return extractApiData(response);

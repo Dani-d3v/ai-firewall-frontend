@@ -103,6 +103,10 @@ function DashboardContent() {
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   const currentUser = profile || authUser || dashboard?.user || null;
+  const vpnStatusRecord = vpnAccess || profile?.vpn || null;
+  const lastSyncedAt = vpnStatusRecord?.lastSyncedAt || subscription?.lastSyncedAt || null;
+  const lastSyncError = vpnStatusRecord?.lastSyncError || subscription?.lastSyncError || "";
+  const isSubscriptionInactive = !subscription?.isActive;
   const daysRemaining = useMemo(
     () => getDaysRemaining(subscription?.validUntil || subscription?.endDate),
     [subscription?.endDate, subscription?.validUntil],
@@ -413,11 +417,16 @@ function DashboardContent() {
                 Latest protection status
               </p>
               <p className="mt-4 text-3xl font-semibold text-slate-950">
-                {vpnAccess?.status || profile?.vpn?.status || "Not provisioned"}
+                {vpnStatusRecord?.status || "Not provisioned"}
               </p>
               <p className="mt-3 text-sm leading-7 text-slate-600">
                 Assigned IP: {vpnAccess?.clientConfiguration?.address || profile?.vpn?.assignedIp || "Unavailable"}
               </p>
+              {lastSyncError ? (
+                <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+                  Warning: Connection out of sync. Click to retry when an admin sync option is available.
+                </div>
+              ) : null}
             </div>
             <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/40">
               <p className="text-sm uppercase tracking-[0.25em] text-[var(--accent-strong)]">
@@ -507,6 +516,15 @@ function DashboardContent() {
               <p className="mt-4 text-sm text-slate-600">
                 Transaction ID: {subscription?.transactionId || "Not available"}
               </p>
+              <div className="mt-4 space-y-2 text-sm text-slate-600">
+                <p>Last synced to gateway: {formatDate(lastSyncedAt)}</p>
+                {lastSyncError ? (
+                  <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 text-amber-800">
+                    Warning: Connection out of sync. Click to retry.
+                    <div className="mt-2 text-sm font-medium">Last sync error: {lastSyncError}</div>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/40">
@@ -599,8 +617,15 @@ function DashboardContent() {
                 <p>Gateway key: {vpnAccess?.gatewayConfiguration?.hostPublicKey || "Not available"}</p>
                 <p>User public key: {vpnAccess?.clientConfiguration?.userPublicKey || profile?.vpn?.publicKey || "Not available"}</p>
                 <p>Local private key: {wireguardKeys?.privateKey || "Not available in this browser"}</p>
+                <p>Last synced to gateway: {formatDate(lastSyncedAt)}</p>
                 <p>Provisioned at: {formatDate(profile?.vpn?.lastProvisionedAt)}</p>
               </div>
+              {lastSyncError ? (
+                <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+                  Warning icon: Connection out of sync. Click to retry.
+                  <div className="mt-2 font-medium">Error: {lastSyncError}</div>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/40">
@@ -628,11 +653,21 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={handleDownloadConfig}
-                disabled={isDownloading || !subscription?.isActive}
+                disabled={isDownloading || isSubscriptionInactive}
+                title={
+                  isSubscriptionInactive
+                    ? "Subscription inactive. Access to BRADSafe Gateway revoked."
+                    : "Download WireGuard configuration"
+                }
                 className="mt-6 w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isDownloading ? "Preparing config..." : "Download WireGuard Config"}
               </button>
+              {isSubscriptionInactive ? (
+                <p className="mt-3 text-sm text-slate-500">
+                  Subscription inactive. Access to BRADSafe Gateway revoked.
+                </p>
+              ) : null}
             </div>
           </div>
         ) : null}

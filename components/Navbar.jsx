@@ -6,11 +6,6 @@ import { useState } from "react";
 
 import { useAuth } from "@/context/AuthContext";
 
-const navigationItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/subscriptions", label: "Subscriptions" },
-];
-
 const publicNavigationItems = [
   { href: "/", label: "Company" },
   { href: "/subscriptions", label: "Plans" },
@@ -31,6 +26,11 @@ export default function Navbar() {
 
   const isAuthRoute = authRoutes.includes(pathname);
   const primaryIdentity = user?.name || user?.email || "Signed in";
+  const navigationItems = [
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/subscriptions", label: "Subscriptions" },
+    ...(user?.role === "admin" ? [{ href: "/admin/gateway-status", label: "Admin Sync" }] : []),
+  ];
 
   const handleLogout = () => {
     setIsMenuOpen(false);

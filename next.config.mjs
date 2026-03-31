@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 const workspaceRoot = dirname(fileURLToPath(import.meta.url));
 const backendOrigin =
   process.env.BACKEND_API_ORIGIN ||
-  "https://ai-firewall-backend-dani-d3v8671-ooua5n91.leapcell.dev";
+  "https://ai-firewall-backend-lali735628-c3vd9b2b.leapcell.dev";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

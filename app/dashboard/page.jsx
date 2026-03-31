@@ -120,31 +120,47 @@ function DashboardContent() {
     try {
       const { dashboardData, profileData, subscriptionData, historyData, vpnData } =
         await fetchDashboardBundle();
+      const dashboardValue =
+        dashboardData.status === "fulfilled" ? dashboardData.value : null;
+      const profileValue =
+        profileData.status === "fulfilled" ? profileData.value : null;
+      const subscriptionValue =
+        subscriptionData.status === "fulfilled" ? subscriptionData.value : null;
+      const vpnAccessValue =
+        vpnData.status === "fulfilled" ? vpnData.value : null;
 
-      if (dashboardData.status === "fulfilled") {
-        setDashboard(dashboardData.value);
-        setAlerts(Array.isArray(dashboardData.value?.recentAlerts) ? dashboardData.value.recentAlerts : []);
+      if (dashboardValue) {
+        setDashboard(dashboardValue);
+        setAlerts(Array.isArray(dashboardValue?.recentAlerts) ? dashboardValue.recentAlerts : []);
       }
 
-      if (profileData.status === "fulfilled") {
-        setProfile(profileData.value);
+      if (profileValue) {
+        setProfile(profileValue);
       }
 
-      if (subscriptionData.status === "fulfilled") {
-        setSubscription(subscriptionData.value);
-      } else {
-        setSubscription(null);
-      }
+      // Prefer the dedicated subscription endpoint, but do not let a single 402 wipe out
+      // valid subscription state already returned by the profile/dashboard endpoints.
+      setSubscription(
+        subscriptionValue ||
+          profileValue?.subscription ||
+          dashboardValue?.subscription ||
+          null,
+      );
 
       if (historyData.status === "fulfilled") {
         setHistory(normalizeHistory(historyData.value));
       }
 
-      if (vpnData.status === "fulfilled") {
-        setVpnAccess(vpnData.value);
-      } else {
-        setVpnAccess(null);
-      }
+      // The VPN access endpoint can also reject when the backend thinks access is inactive.
+      // Fall back to profile/dashboard VPN state so the UI does not incorrectly downgrade.
+      setVpnAccess(
+        vpnAccessValue ||
+          profileValue?.vpn ||
+          dashboardValue?.vpn ||
+          null,
+      );
+
+      setError("");
 
       if (
         dashboardData.status === "rejected" &&

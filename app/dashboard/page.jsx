@@ -98,7 +98,6 @@ function DashboardContent() {
   const [wireguardKeys, setWireguardKeys] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [cancelError, setCancelError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -120,47 +119,31 @@ function DashboardContent() {
     try {
       const { dashboardData, profileData, subscriptionData, historyData, vpnData } =
         await fetchDashboardBundle();
-      const dashboardValue =
-        dashboardData.status === "fulfilled" ? dashboardData.value : null;
-      const profileValue =
-        profileData.status === "fulfilled" ? profileData.value : null;
-      const subscriptionValue =
-        subscriptionData.status === "fulfilled" ? subscriptionData.value : null;
-      const vpnAccessValue =
-        vpnData.status === "fulfilled" ? vpnData.value : null;
 
-      if (dashboardValue) {
-        setDashboard(dashboardValue);
-        setAlerts(Array.isArray(dashboardValue?.recentAlerts) ? dashboardValue.recentAlerts : []);
+      if (dashboardData.status === "fulfilled") {
+        setDashboard(dashboardData.value);
+        setAlerts(Array.isArray(dashboardData.value?.recentAlerts) ? dashboardData.value.recentAlerts : []);
       }
 
-      if (profileValue) {
-        setProfile(profileValue);
+      if (profileData.status === "fulfilled") {
+        setProfile(profileData.value);
       }
 
-      // Prefer the dedicated subscription endpoint, but do not let a single 402 wipe out
-      // valid subscription state already returned by the profile/dashboard endpoints.
-      setSubscription(
-        subscriptionValue ||
-          profileValue?.subscription ||
-          dashboardValue?.subscription ||
-          null,
-      );
+      if (subscriptionData.status === "fulfilled") {
+        setSubscription(subscriptionData.value);
+      } else {
+        setSubscription(null);
+      }
 
       if (historyData.status === "fulfilled") {
         setHistory(normalizeHistory(historyData.value));
       }
 
-      // The VPN access endpoint can also reject when the backend thinks access is inactive.
-      // Fall back to profile/dashboard VPN state so the UI does not incorrectly downgrade.
-      setVpnAccess(
-        vpnAccessValue ||
-          profileValue?.vpn ||
-          dashboardValue?.vpn ||
-          null,
-      );
-
-      setError("");
+      if (vpnData.status === "fulfilled") {
+        setVpnAccess(vpnData.value);
+      } else {
+        setVpnAccess(null);
+      }
 
       if (
         dashboardData.status === "rejected" &&
@@ -292,9 +275,13 @@ function DashboardContent() {
   };
 
   const handleCancelSubscription = async () => {
+    if (!confirmCancel) {
+      setConfirmCancel(true);
+      return;
+    }
+
     setError("");
     setSuccess("");
-    setCancelError("");
     setIsCancelling(true);
 
     try {
@@ -305,7 +292,7 @@ function DashboardContent() {
       setSuccess("Your subscription was cancelled and the VPN state was revoked.");
       await refreshData();
     } catch (cancelError) {
-      setCancelError(cancelError.message);
+      setError(cancelError.message);
     } finally {
       setIsCancelling(false);
     }
@@ -580,54 +567,19 @@ function DashboardContent() {
                 Cancelling immediately sets the subscription inactive and revokes VPN status in
                 the backend.
               </p>
-              {cancelError ? (
-                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
-                  {cancelError}
-                </div>
-              ) : null}
               {confirmCancel ? (
                 <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
-                  <p className="font-medium">Are you sure you want to cancel this subscription?</p>
-                  <p className="mt-2">
-                    This will immediately deactivate subscription access and revoke the VPN in
-                    the backend.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={handleCancelSubscription}
-                      disabled={!subscription?.isActive || isCancelling}
-                      className="rounded-2xl border border-rose-300 bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isCancelling ? "Cancelling..." : "Yes, Cancel Subscription"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setConfirmCancel(false);
-                        setCancelError("");
-                      }}
-                      disabled={isCancelling}
-                      className="rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Keep Subscription
-                    </button>
-                  </div>
+                  Press the cancel button again to confirm.
                 </div>
               ) : null}
-              {!confirmCancel ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCancelError("");
-                    setConfirmCancel(true);
-                  }}
-                  disabled={!subscription?.isActive || isCancelling}
-                  className="mt-6 w-full rounded-2xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Cancel Subscription
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={handleCancelSubscription}
+                disabled={!subscription?.isActive || isCancelling}
+                className="mt-6 w-full rounded-2xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCancelling ? "Cancelling..." : confirmCancel ? "Confirm Cancellation" : "Cancel Subscription"}
+              </button>
 
               <div className="mt-6">
                 <p className="text-sm uppercase tracking-[0.25em] text-slate-500">

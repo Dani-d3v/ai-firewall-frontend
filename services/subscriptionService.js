@@ -5,8 +5,13 @@ export const getPlans = async () => {
   return extractApiData(response);
 };
 
-export const simulatePayment = async (payload) => {
-  const response = await api.post("/api/subscriptions/simulate-payment", payload);
+export const initializeChapaCheckout = async (payload) => {
+  const response = await api.post("/api/subscriptions/chapa/initialize", payload);
+  return extractApiData(response);
+};
+
+export const verifyChapaPayment = async (txRef) => {
+  const response = await api.get(`/api/subscriptions/chapa/verify/${encodeURIComponent(txRef)}`);
   return extractApiData(response);
 };
 

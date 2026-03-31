@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -106,11 +107,13 @@ function DashboardContent() {
   const vpnStatusRecord = vpnAccess || profile?.vpn || null;
   const lastSyncedAt = vpnStatusRecord?.lastSyncedAt || subscription?.lastSyncedAt || null;
   const lastSyncError = vpnStatusRecord?.lastSyncError || subscription?.lastSyncError || "";
-  const isSubscriptionInactive = !subscription?.isActive;
   const daysRemaining = useMemo(
     () => getDaysRemaining(subscription?.validUntil || subscription?.endDate),
     [subscription?.endDate, subscription?.validUntil],
   );
+  const isSubscriptionInactive = !subscription?.isActive;
+  const shouldShowSubscribeAction =
+    !subscription || !subscription?.isActive || daysRemaining === 0;
 
   const refreshData = async () => {
     try {
@@ -370,6 +373,14 @@ function DashboardContent() {
               <p className="mt-2 text-sm text-slate-600">
                 Status: {subscription?.status || "inactive"}
               </p>
+              {shouldShowSubscribeAction ? (
+                <Link
+                  href="/subscriptions"
+                  className="mt-4 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)]"
+                >
+                  Subscribe Now
+                </Link>
+              ) : null}
             </div>
             <div className="rounded-[1.75rem] border border-amber-100 bg-white p-5">
               <p className="text-sm uppercase tracking-[0.25em] text-emerald-700">Days left</p>
@@ -426,6 +437,14 @@ function DashboardContent() {
                 <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-800">
                   Warning: Connection out of sync. Click to retry when an admin sync option is available.
                 </div>
+              ) : null}
+              {shouldShowSubscribeAction ? (
+                <Link
+                  href="/subscriptions"
+                  className="mt-4 inline-flex rounded-full border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                >
+                  View Subscription Plans
+                </Link>
               ) : null}
             </div>
             <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/40">
@@ -525,6 +544,19 @@ function DashboardContent() {
                   </div>
                 ) : null}
               </div>
+              {shouldShowSubscribeAction ? (
+                <div className="mt-6 rounded-2xl border border-amber-200 bg-[var(--surface-soft)] px-4 py-4">
+                  <p className="text-sm text-slate-700">
+                    Your account does not currently have active BRADSafe coverage.
+                  </p>
+                  <Link
+                    href="/subscriptions"
+                    className="mt-4 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)]"
+                  >
+                    Choose a Plan
+                  </Link>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/40">

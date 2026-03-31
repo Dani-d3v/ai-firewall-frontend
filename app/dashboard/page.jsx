@@ -64,6 +64,38 @@ const normalizeHistory = (value) => {
   return [];
 };
 
+const getResolvedSubscription = ({ dashboardData, profileData, subscriptionData }) => {
+  if (subscriptionData.status === "fulfilled" && subscriptionData.value) {
+    return subscriptionData.value;
+  }
+
+  if (dashboardData.status === "fulfilled" && dashboardData.value?.subscription) {
+    return dashboardData.value.subscription;
+  }
+
+  if (profileData.status === "fulfilled" && profileData.value?.subscription) {
+    return profileData.value.subscription;
+  }
+
+  return null;
+};
+
+const getResolvedVpnAccess = ({ dashboardData, profileData, vpnData }) => {
+  if (vpnData.status === "fulfilled" && vpnData.value) {
+    return vpnData.value;
+  }
+
+  if (dashboardData.status === "fulfilled" && dashboardData.value?.vpn) {
+    return dashboardData.value.vpn;
+  }
+
+  if (profileData.status === "fulfilled" && profileData.value?.vpn) {
+    return profileData.value.vpn;
+  }
+
+  return null;
+};
+
 const fetchDashboardBundle = async () => {
   const [dashboardData, profileData, subscriptionData, historyData, vpnData] =
     await Promise.allSettled([
@@ -129,28 +161,31 @@ function DashboardContent() {
         setProfile(profileData.value);
       }
 
-      if (subscriptionData.status === "fulfilled") {
-        setSubscription(subscriptionData.value);
-      } else {
-        setSubscription(null);
-      }
+      setSubscription(
+        getResolvedSubscription({
+          dashboardData,
+          profileData,
+          subscriptionData,
+        }),
+      );
 
       if (historyData.status === "fulfilled") {
         setHistory(normalizeHistory(historyData.value));
       }
 
-      if (vpnData.status === "fulfilled") {
-        setVpnAccess(vpnData.value);
-      } else {
-        setVpnAccess(null);
-      }
+      setVpnAccess(
+        getResolvedVpnAccess({
+          dashboardData,
+          profileData,
+          vpnData,
+        }),
+      );
 
       if (
         dashboardData.status === "rejected" &&
-        profileData.status === "rejected" &&
-        subscriptionData.status === "rejected"
+        profileData.status === "rejected"
       ) {
-        throw dashboardData.reason;
+        throw dashboardData.reason || profileData.reason;
       }
     } catch (loadError) {
       setError(loadError.message);

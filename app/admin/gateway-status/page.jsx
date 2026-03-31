@@ -1,17 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import Loading from "@/components/Loading";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { retryGatewaySync } from "@/services/subscriptionService";
+import { getProfile } from "@/services/userService";
 
 function GatewayStatusContent() {
   const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
   const [userId, setUserId] = useState("");
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const data = await getProfile();
+        setProfile(data);
+      } catch (profileError) {
+        setError((current) => current || profileError.message);
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -31,7 +50,13 @@ function GatewayStatusContent() {
     }
   };
 
-  if (user?.role && user.role !== "admin") {
+  if (isProfileLoading) {
+    return <Loading label="Checking admin access..." />;
+  }
+
+  const effectiveRole = profile?.role || user?.role || "user";
+
+  if (effectiveRole !== "admin") {
     return (
       <section className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-rose-200 bg-white p-8 shadow-xl shadow-rose-100/40">

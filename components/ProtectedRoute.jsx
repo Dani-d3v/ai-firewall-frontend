@@ -13,7 +13,10 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
+      const query =
+        typeof window !== "undefined" ? window.location.search : "";
+      const redirectTarget = query ? `${pathname}${query}` : pathname;
+      router.replace(`/auth/login?redirect=${encodeURIComponent(redirectTarget)}`);
     }
   }, [isAuthenticated, isLoading, pathname, router]);
 

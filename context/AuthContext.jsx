@@ -58,10 +58,15 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const handleUnauthorized = () => {
+      const redirectTarget =
+        typeof window !== "undefined"
+          ? `${window.location.pathname}${window.location.search}`
+          : "/dashboard";
+
       clearAuthSession();
       setUser(null);
       setToken(null);
-      router.replace("/auth/login");
+      router.replace(`/auth/login?redirect=${encodeURIComponent(redirectTarget)}`);
     };
 
     window.addEventListener("auth:unauthorized", handleUnauthorized);
@@ -82,20 +87,30 @@ export function AuthProvider({ children }) {
 
     if (timeoutMs <= 0) {
       const immediateLogout = window.setTimeout(() => {
+        const redirectTarget =
+          typeof window !== "undefined"
+            ? `${window.location.pathname}${window.location.search}`
+            : "/dashboard";
+
         clearAuthSession();
         setUser(null);
         setToken(null);
-        router.replace("/auth/login");
+        router.replace(`/auth/login?redirect=${encodeURIComponent(redirectTarget)}`);
       }, 0);
 
       return () => window.clearTimeout(immediateLogout);
     }
 
     const timeoutId = window.setTimeout(() => {
+      const redirectTarget =
+        typeof window !== "undefined"
+          ? `${window.location.pathname}${window.location.search}`
+          : "/dashboard";
+
       clearAuthSession();
       setUser(null);
       setToken(null);
-      router.replace("/auth/login");
+      router.replace(`/auth/login?redirect=${encodeURIComponent(redirectTarget)}`);
     }, timeoutMs);
 
     return () => window.clearTimeout(timeoutId);

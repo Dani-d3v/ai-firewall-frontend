@@ -332,6 +332,11 @@ function DashboardContent() {
     }
   };
 
+  const vpnConfigPreview =
+    wireguardKeys?.privateKey && vpnAccess
+      ? formatWireguardConfigFromAccessState(vpnAccess, wireguardKeys.privateKey)
+      : null;
+
   if (isLoading) {
     return <Loading label="Loading dashboard..." />;
   }
@@ -593,6 +598,7 @@ function DashboardContent() {
                 <p>Gateway endpoint: {vpnAccess?.gatewayConfiguration?.endpoint || "Not available"}</p>
                 <p>Gateway key: {vpnAccess?.gatewayConfiguration?.hostPublicKey || "Not available"}</p>
                 <p>User public key: {vpnAccess?.clientConfiguration?.userPublicKey || profile?.vpn?.publicKey || "Not available"}</p>
+                <p>Local private key: {wireguardKeys?.privateKey || "Not available in this browser"}</p>
                 <p>Provisioned at: {formatDate(profile?.vpn?.lastProvisionedAt)}</p>
               </div>
             </div>
@@ -606,6 +612,18 @@ function DashboardContent() {
               </p>
               <div className="mt-4 rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-4 py-4 text-sm text-slate-600">
                 Local public key: {wireguardKeys?.publicKey || "No local keypair stored in this browser"}
+              </div>
+              <div className="mt-4 rounded-2xl border border-amber-100 bg-slate-950 p-4 text-sm text-slate-100">
+                <p className="mb-3 font-semibold text-white">Ready-to-use config</p>
+                {vpnConfigPreview ? (
+                  <pre className="overflow-x-auto whitespace-pre-wrap break-all">
+                    {vpnConfigPreview}
+                  </pre>
+                ) : (
+                  <p className="text-slate-300">
+                    The full config with private key can only be shown in the same browser that created the WireGuard keypair during payment.
+                  </p>
+                )}
               </div>
               <button
                 type="button"

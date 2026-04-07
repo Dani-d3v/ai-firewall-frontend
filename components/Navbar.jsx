@@ -29,7 +29,7 @@ export default function Navbar() {
   const navigationItems = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/subscriptions", label: "Subscriptions" },
-    ...(user?.role === "admin" ? [{ href: "/admin/gateway-status", label: "Admin Sync" }] : []),
+    ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   const handleLogout = () => {

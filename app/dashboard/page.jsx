@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useEffect, useEffectEvent, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Loading from "@/components/Loading";
@@ -16,7 +17,7 @@ import {
 } from "@/services/subscriptionService";
 import { getDashboard, getProfile } from "@/services/userService";
 import { clearWireguardSession, getWireguardSession } from "@/utils/storage";
-import { buildWireguardConfig, downloadTextFile, formatWireguardConfigFromAccessState } from "@/utils/wireguard";
+import { downloadTextFile } from "@/utils/wireguard";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -62,6 +63,14 @@ const normalizeHistory = (value) => {
   }
 
   return [];
+};
+
+const copyToClipboard = async (value) => {
+  if (!navigator?.clipboard?.writeText) {
+    throw new Error("Clipboard copy is not supported in this browser.");
+  }
+
+  await navigator.clipboard.writeText(value);
 };
 
 const getResolvedSubscription = ({ dashboardData, profileData, subscriptionData }) => {
@@ -133,7 +142,9 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isCopyingConfig, setIsCopyingConfig] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [wireguardConfigAsset, setWireguardConfigAsset] = useState(null);
 
   const currentUser = profile || authUser || dashboard?.user || null;
   const vpnStatusRecord = vpnAccess || profile?.vpn || null;
@@ -202,6 +213,10 @@ function DashboardContent() {
     setWireguardKeys(getWireguardSession());
     refreshData();
   }, []);
+
+  useEffect(() => {
+    setWireguardConfigAsset(null);
+  }, [subscription?.isActive, vpnAccess?.status]);
 
   useEffect(() => {
     const requestedTab = searchParams.get("tab");
@@ -333,38 +348,45 @@ function DashboardContent() {
     }
   };
 
-  const handleDownloadConfig = async () => {
+  const loadWireguardConfigAsset = useCallback(async () => {
     if (!wireguardKeys?.privateKey) {
-      setError("No local WireGuard private key was found. Payment must be completed from this browser to download the config.");
-      return;
+      throw new Error("No local WireGuard private key was found in this browser.");
     }
 
+    if (!token) {
+      throw new Error("You must be signed in to generate the WireGuard configuration.");
+    }
+
+    const configAsset = await downloadWireguardConfig({
+      privateKey: wireguardKeys.privateKey,
+      token,
+    });
+
+    if (!configAsset.content) {
+      throw new Error(configAsset.backendMessage || "The backend did not return any WireGuard config text.");
+    }
+
+    if (!configAsset.qrCodeDataUri) {
+      console.log("download-config response missing qrCodeDataUri", configAsset.rawResponse);
+    }
+
+    setError("");
+    setWireguardConfigAsset(configAsset);
+    return configAsset;
+  }, [token, wireguardKeys]);
+
+  const handleDownloadConfig = async () => {
     setError("");
     setSuccess("");
     setIsDownloading(true);
 
     try {
-      try {
-        const template = await downloadWireguardConfig();
-        const config = buildWireguardConfig({
-          template: template.content,
-          privateKey: wireguardKeys.privateKey,
-        });
+      const configAsset = await loadWireguardConfigAsset();
 
-        downloadTextFile({
-          content: config,
-          fileName: template.fileName,
-        });
-      } catch {
-        if (!vpnAccess) {
-          throw new Error("VPN access is not active yet, so no configuration can be downloaded.");
-        }
-
-        downloadTextFile({
-          content: formatWireguardConfigFromAccessState(vpnAccess, wireguardKeys.privateKey),
-          fileName: "vectraflow.conf",
-        });
-      }
+      downloadTextFile({
+        content: configAsset.content,
+        fileName: configAsset.fileName,
+      });
 
       setSuccess("WireGuard configuration downloaded successfully.");
     } catch (downloadError) {
@@ -374,10 +396,63 @@ function DashboardContent() {
     }
   };
 
+  const handleCopyConfig = async () => {
+    if (!vpnConfigPreview) {
+      setError("No WireGuard configuration is available to copy yet.");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setIsCopyingConfig(true);
+
+    try {
+      await copyToClipboard(vpnConfigPreview);
+      setSuccess("WireGuard configuration copied to your clipboard.");
+    } catch (copyError) {
+      setError(copyError.message);
+    } finally {
+      setIsCopyingConfig(false);
+    }
+  };
+
   const vpnConfigPreview =
-    wireguardKeys?.privateKey && vpnAccess
-      ? formatWireguardConfigFromAccessState(vpnAccess, wireguardKeys.privateKey)
-      : null;
+    wireguardConfigAsset?.content || "";
+
+  const qrCodeDataUri = wireguardConfigAsset?.qrCodeDataUri || "";
+
+  useEffect(() => {
+    if (
+      activeTab !== "vpn" ||
+      isSubscriptionInactive ||
+      wireguardConfigAsset ||
+      isDownloading ||
+      !wireguardKeys?.privateKey ||
+      !token
+    ) {
+      return;
+    }
+
+    let isMounted = true;
+
+    loadWireguardConfigAsset().catch((loadError) => {
+      if (isMounted) {
+        setError((current) => current || loadError.message);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    activeTab,
+    isDownloading,
+    isSubscriptionInactive,
+    loadWireguardConfigAsset,
+    token,
+    wireguardConfigAsset,
+    wireguardKeys?.privateKey,
+  ]);
 
   if (isLoading) {
     return <Loading label="Loading dashboard..." />;
@@ -700,20 +775,41 @@ function DashboardContent() {
                 Download and use
               </p>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Download the config template with your locally stored private key inserted.
+                The backend generates this QR code from the exact WireGuard config text shown below.
               </p>
               <div className="mt-4 rounded-2xl border border-amber-100 bg-[var(--surface-soft)] px-4 py-4 text-sm text-slate-600">
                 Local public key: {wireguardKeys?.publicKey || "No local keypair stored in this browser"}
               </div>
+              <div className="mt-4 rounded-2xl border border-amber-100 bg-[var(--surface-soft)] p-4">
+                <p className="text-sm font-semibold text-slate-900">Mobile QR preview</p>
+                {qrCodeDataUri ? (
+                  <Image
+                    src={qrCodeDataUri}
+                    alt="WireGuard mobile QR code"
+                    width={512}
+                    height={512}
+                    unoptimized
+                    className="mt-4 mx-auto h-auto w-full max-w-[240px] rounded-2xl border border-amber-100 bg-white p-3"
+                  />
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-dashed border-amber-200 bg-white px-4 py-5 text-sm text-slate-600">
+                    {wireguardKeys?.privateKey
+                      ? "The backend has not returned a QR image for this config yet."
+                      : "A local WireGuard private key is required before the backend can generate a QR code."}
+                  </div>
+                )}
+              </div>
               <div className="mt-4 rounded-2xl border border-amber-100 bg-slate-950 p-4 text-sm text-slate-100">
                 <p className="mb-3 font-semibold text-white">Ready-to-use config</p>
                 {vpnConfigPreview ? (
-                  <pre className="overflow-x-auto whitespace-pre-wrap break-all">
-                    {vpnConfigPreview}
-                  </pre>
+                  <textarea
+                    readOnly
+                    value={vpnConfigPreview}
+                    className="min-h-64 w-full resize-y rounded-2xl border border-slate-700 bg-slate-950 p-3 font-mono text-sm text-slate-100 outline-none"
+                  />
                 ) : (
                   <p className="text-slate-300">
-                    The full config with private key can only be shown in the same browser that created the WireGuard keypair during payment.
+                    Open this tab from the same browser that created the WireGuard keypair so the backend can generate the exact config text and QR code.
                   </p>
                 )}
               </div>
@@ -729,6 +825,14 @@ function DashboardContent() {
                 className="mt-6 w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isDownloading ? "Preparing config..." : "Download WireGuard Config"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyConfig}
+                disabled={isCopyingConfig || !vpnConfigPreview}
+                className="mt-3 w-full rounded-2xl border border-amber-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCopyingConfig ? "Copying config..." : "Copy WireGuard Config"}
               </button>
               {isSubscriptionInactive ? (
                 <p className="mt-3 text-sm text-slate-500">

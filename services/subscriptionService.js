@@ -45,15 +45,29 @@ export const getVpnAccessState = async () => {
   return extractApiData(response);
 };
 
-export const downloadWireguardConfig = async () => {
-  const response = await api.get("/api/subscriptions/download-config", {
-    responseType: "text",
-  });
+export const downloadWireguardConfig = async ({ privateKey, token }) => {
+  const response = await api.post(
+    "/api/subscriptions/download-config",
+    { privateKey },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  const rawResponse = response.data || {};
+  const payload = extractApiData(response) || {};
+
+  if (rawResponse?.success === false) {
+    throw new Error(rawResponse.message || "Failed to generate WireGuard config");
+  }
 
   return {
-    content: response.data,
-    fileName:
-      response.headers["content-disposition"]
-        ?.match(/filename="?([^"]+)"?/)?.[1] || "vectraflow.conf",
+    content: payload.configText || "",
+    qrCodeDataUri: payload.qrCodeDataUri || "",
+    fileName: payload.fileName || "vectraflow.conf",
+    backendMessage: rawResponse.message || payload.message || "",
+    rawResponse,
   };
 };
